@@ -52,11 +52,13 @@ contract Farm {
     /// @notice Timestamp when user's cooldown ends
     mapping(address => uint) public cooldown;
 
+    event TransferOwnership(address newOwner);
     event RateUpdated(address indexed poolId, uint rewardRate, uint weight);
     event GrantAP(address indexed user, address indexed poolId, uint amountIn, uint amountOut);
     event Swap(address indexed user, address indexed parent, uint amountIn, uint amountOut);
 
     constructor(address _owner, address _agency, address _gov) {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
         agency = IAgency(_agency);
         gov = IERC20Mintable(_gov);
@@ -68,7 +70,10 @@ contract Farm {
     }
 
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     /// @notice rescue token stucked in this contract

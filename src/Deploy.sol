@@ -21,7 +21,7 @@ contract Deploy {
     constructor(address owner, address root, address weth) {
         agency = new Agency(owner, root);
         factory = new DysonFactory(owner);
-        router = new DysonRouter(weth, owner);
+        router = new DysonRouter(weth, owner, address(factory));
         dyson = new DYSON(owner);
         rateModel = new StakingRateModel(0.0625e18);
         sdyson = new sDYSON(address(this), address(dyson));

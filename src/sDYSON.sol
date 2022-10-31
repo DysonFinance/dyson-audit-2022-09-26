@@ -77,10 +77,15 @@ contract sDYSON {
     mapping(address => mapping(uint => Vault)) public vaults;
     /// @notice Number of vaults owned by user
     mapping(address => uint) public vaultCount;
+    /// @notice Sum of dyson amount in all of user's current vaults
+    mapping(address => uint) public dysonAmountStaked;
+    /// @notice Sum of sDyson amount in all of user's current vaults
+    mapping(address => uint) public votingPower;
 
     /// @notice User's permit nonce
     mapping(address => uint256) public nonces;
 
+    event TransferOwnership(address newOwner);
     event Transfer(address indexed from, address indexed to, uint amount);
     event Approval(address indexed owner, address indexed spender, uint amount);
     event Stake(address indexed vaultOwner, address indexed depositor, uint amount, uint sDYSONAmount, uint time);
@@ -89,6 +94,8 @@ contract sDYSON {
     event Migrate(address indexed vaultOwner, uint index);
 
     constructor(address _owner, address dyson) {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
+        require(dyson != address(0), "DYSON_CANNOT_BE_ZERO");
         owner = _owner;
         Dyson = dyson;
 
@@ -112,28 +119,11 @@ contract sDYSON {
         _;
     }
 
-    /// @notice Sum of dyson amount in all of user's current vaults
-    /// @param _user User
-    /// @return totalAmount Total dyson amount
-    function dysonAmountStaked(address _user) external view returns (uint totalAmount) {
-        uint userVaultCount = vaultCount[_user];
-        for(uint i; i < userVaultCount; i++) {
-            totalAmount += vaults[_user][i].dysonAmount;
-        }
-    }
-
-    /// @notice Sum of sDyson amount in all of user's current vaults
-    /// @param _user User
-    /// @return totalVotingPower Total sDyson amount
-    function votingPower(address _user) external view returns (uint totalVotingPower) {
-        uint userVaultCount = vaultCount[_user];
-        for(uint i; i < userVaultCount; i++) {
-            totalVotingPower += vaults[_user][i].sDYSONAmount;
-        }
-    }
-
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     function approve(address spender, uint amount) external returns (bool) {
@@ -218,6 +208,8 @@ contract sDYSON {
         vault.sDYSONAmount = sDYSONAmount;
         vault.unlockTime = block.timestamp + lockDuration;
         
+        dysonAmountStaked[to] += amount;
+        votingPower[to] += sDYSONAmount;
         vaultCount[to]++;
 
         _mint(to, sDYSONAmount);
@@ -245,6 +237,9 @@ contract sDYSON {
         vault.sDYSONAmount = sDysonAmountNew;
         vault.unlockTime = block.timestamp + lockDuration;
 
+        dysonAmountStaked[msg.sender] += amount;
+        votingPower[msg.sender] += sDysonAmountAdded;
+
         _mint(msg.sender, sDysonAmountAdded);
         if(amount > 0) Dyson.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -266,6 +261,9 @@ contract sDYSON {
         vault.dysonAmount -= amount;
         vault.sDYSONAmount -= sDYSONAmount;
 
+        dysonAmountStaked[msg.sender] -= amount;
+        votingPower[msg.sender] -= sDYSONAmount;
+
         _burn(msg.sender, sDYSONAmount);
         Dyson.safeTransfer(to, amount);
         
@@ -283,12 +281,13 @@ contract sDYSON {
         uint amount = vault.dysonAmount;
         require(IsDYSONUpgradeReceiver(migration).onMigrationReceived(msg.sender, index) == _MIGRATE_RECEIVED, "MIGRATION FAILED");
         Dyson.safeTransfer(migration, amount);
-        _approve(msg.sender, migration, type(uint).max);
+        _approve(msg.sender, migration, amount);
+        dysonAmountStaked[msg.sender] -= amount;
+        votingPower[msg.sender] -= vault.sDYSONAmount;
         vault.dysonAmount = 0;
         vault.sDYSONAmount = 0;
         vault.unlockTime = 0;
         emit Migrate(msg.sender, index);
-
     }
 
     /// @notice rescue token stucked in this contract

@@ -57,11 +57,13 @@ contract Gauge {
     /// @notice The week user can complete his withdrawal
     mapping(address => uint) public weekToWithdraw;
 
+    event TransferOwnership(address newOwner);
     event Deposit(address indexed user, uint indexed week, uint amount);
     event ApplyWithdrawal(address indexed user, uint indexed week, uint amount);
     event Withdraw(address indexed user, uint amount);
 
     constructor(address _farm, address _sgov, address _poolId, uint _weight, uint _base, uint _slope) {
+        require(_sgov != address(0), "SGOV_CANNOT_BE_ZERO");
         owner = msg.sender;
         farm = IFarm(_farm);
         SGOV = _sgov;
@@ -79,7 +81,10 @@ contract Gauge {
     }
 
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     /// @notice rescue token stucked in this contract
@@ -165,7 +170,11 @@ contract Gauge {
     }
 
     /// @notice If this is a new week, update `thisWeek`, reward rate and record total supply of past week
-    function tick() public {
+    function tick() external {
+        if(_tick()) updateRewardRate();
+    }
+
+    function _tick() internal returns (bool needToUpdate) {
         uint _week = block.timestamp / 1 weeks;
 
         if (_week > thisWeek) {
@@ -173,14 +182,17 @@ contract Gauge {
                 _totalSupplyAt[i] = totalSupply;
             }
             thisWeek = _week;
-            updateRewardRate();
+            return true;
         }
+
+        return false;
     }
 
     /// @dev Update latest total supply and trigger `tick`
     function updateTotalSupply(uint _totalSupply) internal {
-        tick();
+        bool needToUpdate = _tick();
         totalSupply = _totalSupply;
+        if(needToUpdate) updateRewardRate();
     }
 
     /// @notice Compute new reward rate base on latest total supply, `slope` and `base`
