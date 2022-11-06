@@ -281,7 +281,7 @@ contract sDYSON {
         uint amount = vault.dysonAmount;
         require(IsDYSONUpgradeReceiver(migration).onMigrationReceived(msg.sender, index) == _MIGRATE_RECEIVED, "MIGRATION FAILED");
         Dyson.safeTransfer(migration, amount);
-        _approve(msg.sender, migration, amount);
+        _approve(msg.sender, migration, vault.sDYSONAmount);
         dysonAmountStaked[msg.sender] -= amount;
         votingPower[msg.sender] -= vault.sDYSONAmount;
         vault.dysonAmount = 0;
