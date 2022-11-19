@@ -170,11 +170,7 @@ contract Gauge {
     }
 
     /// @notice If this is a new week, update `thisWeek`, reward rate and record total supply of past week
-    function tick() external {
-        if(_tick()) updateRewardRate();
-    }
-
-    function _tick() internal returns (bool needToUpdate) {
+    function tick() public {
         uint _week = block.timestamp / 1 weeks;
 
         if (_week > thisWeek) {
@@ -182,17 +178,14 @@ contract Gauge {
                 _totalSupplyAt[i] = totalSupply;
             }
             thisWeek = _week;
-            return true;
+            updateRewardRate();
         }
-
-        return false;
     }
 
     /// @dev Update latest total supply and trigger `tick`
     function updateTotalSupply(uint _totalSupply) internal {
-        bool needToUpdate = _tick();
+        tick();
         totalSupply = _totalSupply;
-        if(needToUpdate) updateRewardRate();
     }
 
     /// @notice Compute new reward rate base on latest total supply, `slope` and `base`
