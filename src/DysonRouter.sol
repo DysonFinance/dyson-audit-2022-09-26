@@ -59,6 +59,7 @@ contract DysonRouter {
     }
 
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
 
         emit TransferOwnership(_owner);
