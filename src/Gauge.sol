@@ -57,11 +57,13 @@ contract Gauge {
     /// @notice The week user can complete his withdrawal
     mapping(address => uint) public weekToWithdraw;
 
+    event TransferOwnership(address newOwner);
     event Deposit(address indexed user, uint indexed week, uint amount);
     event ApplyWithdrawal(address indexed user, uint indexed week, uint amount);
     event Withdraw(address indexed user, uint amount);
 
     constructor(address _farm, address _sgov, address _poolId, uint _weight, uint _base, uint _slope) {
+        require(_sgov != address(0), "SGOV_CANNOT_BE_ZERO");
         owner = msg.sender;
         farm = IFarm(_farm);
         SGOV = _sgov;
@@ -79,7 +81,10 @@ contract Gauge {
     }
 
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
         owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     /// @notice rescue token stucked in this contract

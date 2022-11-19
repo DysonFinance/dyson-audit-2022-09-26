@@ -32,7 +32,7 @@ contract DysonRouterTest is TestUtils {
     DysonPair normalPair = DysonPair(factory.createPair(token0, token1));
     DysonPair weth0Pair = DysonPair(factory.createPair(WETH, token1)); // WETH is token0
     DysonPair weth1Pair = DysonPair(factory.createPair(token0, WETH)); // WETH is token1
-    DysonRouter router = new DysonRouter(WETH, testOwner);
+    DysonRouter router = new DysonRouter(WETH, testOwner, address(factory));
 
     bytes32 constant WITHDRAW_TYPEHASH = keccak256("withdraw(address operator,uint index,address to,uint deadline)");
     uint constant PREMIUM_BASE_UNIT = 1e18;
@@ -65,12 +65,12 @@ contract DysonRouterTest is TestUtils {
         deal(token1, address(weth0Pair), INITIAL_LIQUIDITY_TOKEN);
         deal(token0, address(weth1Pair), INITIAL_LIQUIDITY_TOKEN);
 
-        router.rely(token0, address(normalPair));
-        router.rely(token1, address(normalPair));
-        router.rely(token0, address(weth1Pair));
-        router.rely(token1, address(weth0Pair));
-        router.rely(WETH, address(weth0Pair));
-        router.rely(WETH, address(weth1Pair));
+        router.rely(token0, address(normalPair), true);
+        router.rely(token1, address(normalPair), true);
+        router.rely(token0, address(weth1Pair), true);
+        router.rely(token1, address(weth0Pair), true);
+        router.rely(WETH, address(weth0Pair), true);
+        router.rely(WETH, address(weth1Pair), true);
 
         // Initialize WETH for pairs.
         deal(zack, INITIAL_LIQUIDITY_TOKEN * 2);
@@ -111,19 +111,18 @@ contract DysonRouterTest is TestUtils {
     function testNormalPairSwap01() public {
         uint oldToken0Balance = IERC20(token0).balanceOf(alice);
         uint oldToken1Balance = IERC20(token1).balanceOf(alice);
-        address pair = address(normalPair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output1 = router.swap0(pair, alice, swapAmount, 0);
+        output1 = router.swap(token0, token1, 1, alice, swapAmount, 0);
         uint newToken0Balance = IERC20(token0).balanceOf(alice);
         uint newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance - swapAmount);
         assertEq(newToken1Balance, oldToken1Balance + output1);
 
-        output0 = router.swap1(pair, alice, output1, 0);  
+        output0 = router.swap(token1, token0, 1, alice, output1, 0);
         newToken0Balance = IERC20(token0).balanceOf(alice);
         newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance - swapAmount + output0);
@@ -134,19 +133,18 @@ contract DysonRouterTest is TestUtils {
     function testNormalPairSwap10() public {
         uint oldToken0Balance = IERC20(token0).balanceOf(alice);
         uint oldToken1Balance = IERC20(token1).balanceOf(alice);
-        address pair = address(normalPair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output0 = router.swap1(pair, alice, swapAmount, 0);
+        output0 = router.swap(token1, token0, 1, alice, swapAmount, 0);
         uint newToken0Balance = IERC20(token0).balanceOf(alice);
         uint newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance + output0);
         assertEq(newToken1Balance, oldToken1Balance - swapAmount);
 
-        output1 = router.swap0(pair, alice, output0, 0);
+        output1 = router.swap(token0, token1, 1, alice, output0, 0);
         newToken0Balance = IERC20(token0).balanceOf(alice);
         newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance);
@@ -157,19 +155,18 @@ contract DysonRouterTest is TestUtils {
     function testWeth0PairSwap01() public {
         uint oldToken0Balance = alice.balance;
         uint oldToken1Balance = IERC20(token1).balanceOf(alice);
-        address pair = address(weth0Pair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output1 = router.swap0ETHIn{value: swapAmount}(pair, alice, 0);
+        output1 = router.swapETHIn{value: swapAmount}(token1, 1, alice, 0);
         uint newToken0Balance = alice.balance;
         uint newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance - swapAmount);
         assertEq(newToken1Balance, oldToken1Balance + output1);
 
-        output0 = router.swap1ETHOut(pair, alice, output1, 0);
+        output0 = router.swapETHOut(token1, 1, alice, output1, 0);
         newToken0Balance = alice.balance;
         newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance - swapAmount + output0);
@@ -180,19 +177,18 @@ contract DysonRouterTest is TestUtils {
     function testWeth0PairSwap10() public {
         uint oldToken0Balance = alice.balance;
         uint oldToken1Balance = IERC20(token1).balanceOf(alice);
-        address pair = address(weth0Pair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output0 = router.swap1ETHOut(pair, alice, swapAmount, 0);
+        output0 = router.swapETHOut(token1, 1, alice, swapAmount, 0);
         uint newToken0Balance = alice.balance;
         uint newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance + output0);
         assertEq(newToken1Balance, oldToken1Balance - swapAmount);
 
-        output1 = router.swap0ETHIn{value: output0}(pair, alice, 0);
+        output1 = router.swapETHIn{value: output0}(token1, 1, alice, 0);
         newToken0Balance = alice.balance;
         newToken1Balance = IERC20(token1).balanceOf(alice);
         assertEq(newToken0Balance, oldToken0Balance);
@@ -203,19 +199,18 @@ contract DysonRouterTest is TestUtils {
     function testWeth1PairSwap01() public {
         uint oldToken0Balance = IERC20(token0).balanceOf(alice);
         uint oldToken1Balance = alice.balance;
-        address pair = address(weth1Pair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output1 = router.swap0ETHOut(pair, alice, swapAmount, 0);
+        output1 = router.swapETHOut(token0, 1, alice, swapAmount, 0);
         uint newToken0Balance = IERC20(token0).balanceOf(alice);
         uint newToken1Balance = alice.balance;
         assertEq(newToken0Balance, oldToken0Balance - swapAmount);
         assertEq(newToken1Balance, oldToken1Balance + output1);
 
-        output0 = router.swap1ETHIn{value: output1}(pair, alice, 0);
+        output0 = router.swapETHIn{value: output1}(token0, 1, alice, 0);
         newToken0Balance = IERC20(token0).balanceOf(alice);
         newToken1Balance = alice.balance;
         assertEq(newToken0Balance, oldToken0Balance - swapAmount + output0);
@@ -226,19 +221,18 @@ contract DysonRouterTest is TestUtils {
     function testWeth1PairSwap10() public {
         uint oldToken0Balance = IERC20(token0).balanceOf(alice);
         uint oldToken1Balance = alice.balance;
-        address pair = address(weth1Pair);
         uint swapAmount = 10**18;
         uint output0; 
         uint output1;
 
         vm.startPrank(alice);
-        output0 = router.swap1ETHIn{value: swapAmount}(pair, alice, 0);
+        output0 = router.swapETHIn{value: swapAmount}(token0, 1, alice, 0);
         uint newToken0Balance = IERC20(token0).balanceOf(alice);
         uint newToken1Balance = alice.balance;
         assertEq(newToken0Balance, oldToken0Balance + output0);
         assertEq(newToken1Balance, oldToken1Balance - swapAmount);
 
-        output1 = router.swap0ETHOut(pair, alice, output0, 0);
+        output1 = router.swapETHOut(token0, 1, alice, output0, 0);
         newToken0Balance = IERC20(token0).balanceOf(alice);
         newToken1Balance = alice.balance;
         assertEq(newToken0Balance, oldToken0Balance);
@@ -255,8 +249,8 @@ contract DysonRouterTest is TestUtils {
         uint premium = pair.getPremium(period);
 
         vm.startPrank(alice);
-        uint output1 = router.deposit0(address(pair), alice, depositAmount, 0, period);
-        uint output0 = router.deposit1(address(pair), alice, depositAmount, 0, period);
+        uint output1 = router.deposit(token0, token1, 1, alice, depositAmount, 0, period);
+        uint output0 = router.deposit(token1, token0, 1, alice, depositAmount, 0, period);
 
         (uint token0Amt, uint token1Amt, uint due) = pair.notes(alice, 0);
         assertEq(token0Amt, depositAmount * (premium + PREMIUM_BASE_UNIT) / PREMIUM_BASE_UNIT);
@@ -283,8 +277,8 @@ contract DysonRouterTest is TestUtils {
         uint premium = pair.getPremium(period);
 
         vm.startPrank(alice);
-        uint output1 = router.deposit0ETH{value: depositAmount}(address(pair), alice, 0, period);
-        uint output0 = router.deposit1(address(pair), alice, depositAmount, 0, period);
+        uint output1 = router.depositETH{value: depositAmount}(token1, 1, alice, 0, period);
+        uint output0 = router.deposit(token1, WETH, 1, alice, depositAmount, 0, period);
 
         (uint token0Amt, uint token1Amt, uint due) = pair.notes(alice, 0);
         assertEq(token0Amt, depositAmount * (premium + PREMIUM_BASE_UNIT) / PREMIUM_BASE_UNIT);
@@ -311,8 +305,8 @@ contract DysonRouterTest is TestUtils {
         uint premium = pair.getPremium(period);
 
         vm.startPrank(alice);
-        uint output1 = router.deposit0(address(pair), alice, depositAmount, 0, period);
-        uint output0 = router.deposit1ETH{value: depositAmount}(address(pair), alice, 0, period);
+        uint output1 = router.deposit(token0, WETH, 1, alice, depositAmount, 0, period);
+        uint output0 = router.depositETH{value: depositAmount}(token0, 1, alice, 0, period);
 
         (uint token0Amt, uint token1Amt, uint due) = pair.notes(alice, 0);
         assertEq(token0Amt, depositAmount * (premium + PREMIUM_BASE_UNIT) / PREMIUM_BASE_UNIT);
@@ -337,8 +331,8 @@ contract DysonRouterTest is TestUtils {
         uint index = 0;
 
         vm.startPrank(alice);
-        router.deposit0(address(pair), alice, depositAmount, 0, period);
-        router.deposit1(address(pair), alice, depositAmount, 0, period);
+        router.deposit(token0, token1, 1, alice, depositAmount, 0, period);
+        router.deposit(token1, token0, 1, alice, depositAmount, 0, period);
         skip(period);
 
         uint deadline = block.timestamp + 1;
@@ -369,8 +363,8 @@ contract DysonRouterTest is TestUtils {
         uint index = 0;
 
         vm.startPrank(alice);
-        router.deposit0ETH{value: depositAmount}(address(pair), alice, 0, period);
-        router.deposit1(address(pair), alice, depositAmount, 0, period);
+        router.depositETH{value: depositAmount}(token1, 1, alice, 0, period);
+        router.deposit(token1, WETH, 1, alice, depositAmount, 0, period);
         skip(period);
 
         uint deadline = block.timestamp + 1;
@@ -401,8 +395,8 @@ contract DysonRouterTest is TestUtils {
         uint index = 0;
 
         vm.startPrank(alice);
-        router.deposit0(address(pair), alice, depositAmount, 0, period);
-        router.deposit1ETH{value: depositAmount}(address(pair), alice, 0, period);
+        router.deposit(token0, WETH, 1, alice, depositAmount, 0, period);
+        router.depositETH{value: depositAmount}(token0, 1, alice, 0, period);
         skip(period);
 
         uint deadline = block.timestamp + 1;
@@ -473,7 +467,7 @@ contract DysonRouterTest is TestUtils {
     }
 
     function _getWithdrawSig(address pair, uint fromKey, uint index, address to, uint deadline) private returns (bytes memory) {
-        bytes32 structHash = keccak256(abi.encodePacked(WITHDRAW_TYPEHASH, address(router), index, to, deadline));
+        bytes32 structHash = keccak256(abi.encode(WITHDRAW_TYPEHASH, address(router), index, to, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _getDysonPairDomainSeparator(pair), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(fromKey, digest);
         return abi.encodePacked(r, s, v);

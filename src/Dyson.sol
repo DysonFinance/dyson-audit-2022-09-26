@@ -24,10 +24,12 @@ contract DYSON {
 
     address public owner;
 
+    event TransferOwnership(address newOwner);
     event Transfer(address indexed from, address indexed to, uint amount);
     event Approval(address indexed owner, address indexed spender, uint amount);
 
     constructor(address _owner) {
+        require(_owner != address(0), "INVALID_OWNER");
         owner = _owner;
 
         uint256 chainId;
@@ -59,14 +61,17 @@ contract DYSON {
     }
 
     function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "INVALID_OWNER");
         owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     function addMinter(address _minter) external onlyOwner {
         isMinter[_minter] = true;
     }
 
-    function removeMinter(address _minter) public onlyOwner {
+    function removeMinter(address _minter) external onlyOwner {
         isMinter[_minter] = false;
     }
 

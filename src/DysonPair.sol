@@ -282,6 +282,7 @@ contract DysonPair is Feeswap {
     /// @notice `halfLife` can only be set by governance, i.e., controller of factory contract
     function setHalfLife(uint64 _halfLife) external lock {
         require(IDysonFactory(factory).controller() == msg.sender, "FORBIDDEN");
+        require( _halfLife > 0, "HALF_LIFE_CANNOT_BE_ZERO");
         halfLife = _halfLife;
     }
 
@@ -344,6 +345,7 @@ contract DysonPair is Feeswap {
     /// @param time Lock time
     /// @return output Amount of token1 received if the swap is performed
     function deposit0(address to, uint input, uint minOutput, uint time) external lock returns (uint output) {
+        require(to != address(0), "TO_CANNOT_BE_ZERO");
         uint fee;
         (fee, output) = _swap0in(input, minOutput);
         uint premium = getPremium(time);
@@ -367,6 +369,7 @@ contract DysonPair is Feeswap {
     /// @param time Lock time
     /// @return output Amount of token0 received if the swap is performed
     function deposit1(address to, uint input, uint minOutput, uint time) external lock returns (uint output) {
+        require(to != address(0), "TO_CANNOT_BE_ZERO");
         uint fee;
         (fee, output) = _swap1in(input, minOutput);
         uint premium = getPremium(time);
@@ -439,7 +442,8 @@ contract DysonPair is Feeswap {
     /// @return token1Amt Amount of token1 withdrawn
     function withdrawWithSig(address from, uint index, address to, uint deadline, bytes calldata sig) external lock returns (uint token0Amt, uint token1Amt) {
         require(block.timestamp <= deadline || deadline == 0, "EXCEED_DEADLINE");
-        bytes32 structHash = keccak256(abi.encodePacked(WITHDRAW_TYPEHASH, msg.sender, index, to, deadline));
+        require(from != address(0), "FROM_CANNOT_BE_ZERO");
+        bytes32 structHash = keccak256(abi.encode(WITHDRAW_TYPEHASH, msg.sender, index, to, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
         require(from == _ecrecover(digest, sig), "INVALID_SIGNATURE");
         return _withdraw(from, index, to);

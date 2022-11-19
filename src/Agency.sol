@@ -55,10 +55,12 @@ contract Agency {
     /// @notice Record if a hash has been presigned by an address
     mapping(address => mapping(bytes32 => bool)) public presign;
 
+    event TransferOwnership(address newOwner);
     event Register(uint indexed referrer, uint referee);
     event Sign(address indexed signer, bytes32 digest);
 
     constructor(address _owner, address root) {
+        require(_owner != address(0), "INVALID_OWNER");
         DOMAIN_SEPARATOR = keccak256(abi.encode(
             keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
             keccak256(bytes("Dyson Agency")),
@@ -85,6 +87,13 @@ contract Agency {
     modifier onlyOwner() {
         require(msg.sender == owner, "FORBIDDEN");
         _;
+    }
+
+    function transferOwnership(address _owner) external onlyOwner {
+        require(_owner != address(0), "OWNER_CANNOT_BE_ZERO");
+        owner = _owner;
+
+        emit TransferOwnership(_owner);
     }
 
     /// @notice rescue token stucked in this contract

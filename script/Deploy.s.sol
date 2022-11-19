@@ -39,7 +39,7 @@ contract DeployScript is Addresses, Test {
         // Deploy Dyson, sDyson, DysonFactory and DysonRouter
         dyson = new DYSON(owner);
         factory = new DysonFactory(owner);
-        router = new DysonRouter(weth, owner);
+        router = new DysonRouter(weth, owner, address(factory));
 
         // Deploy StakingRateModel and sDyson
         rateModel = new StakingRateModel(0.0625e18);

@@ -16,11 +16,16 @@ contract DysonFactory {
     event PairCreated(address indexed token0, address indexed token1, uint id, address pair, uint);
 
     constructor(address _controller) {
+        require(_controller != address(0), "CONTROLLER_CANNOT_BE_ZERO");
         controller = _controller;
     }
 
     function allPairsLength() external view returns (uint) {
         return allPairs.length;
+    }
+
+    function getInitCodeHash() external pure returns (bytes32) {
+        return keccak256(type(DysonPair).creationCode);
     }
 
     function createPair(address tokenA, address tokenB) external returns (address pair) {
@@ -38,6 +43,7 @@ contract DysonFactory {
     }
 
     function setController(address _controller) external {
+        require(_controller != address(0), "CONTROLLER_CANNOT_BE_ZERO");
         require(msg.sender == controller, 'FORBIDDEN');
         pendingController = _controller;
     }
