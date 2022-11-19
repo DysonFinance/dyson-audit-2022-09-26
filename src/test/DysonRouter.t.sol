@@ -467,7 +467,7 @@ contract DysonRouterTest is TestUtils {
     }
 
     function _getWithdrawSig(address pair, uint fromKey, uint index, address to, uint deadline) private returns (bytes memory) {
-        bytes32 structHash = keccak256(abi.encodePacked(WITHDRAW_TYPEHASH, address(router), index, to, deadline));
+        bytes32 structHash = keccak256(abi.encode(WITHDRAW_TYPEHASH, address(router), index, to, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _getDysonPairDomainSeparator(pair), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(fromKey, digest);
         return abi.encodePacked(r, s, v);

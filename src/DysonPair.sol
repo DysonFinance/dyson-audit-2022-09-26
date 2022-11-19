@@ -443,7 +443,7 @@ contract DysonPair is Feeswap {
     function withdrawWithSig(address from, uint index, address to, uint deadline, bytes calldata sig) external lock returns (uint token0Amt, uint token1Amt) {
         require(block.timestamp <= deadline || deadline == 0, "EXCEED_DEADLINE");
         require(from != address(0), "FROM_CANNOT_BE_ZERO");
-        bytes32 structHash = keccak256(abi.encodePacked(WITHDRAW_TYPEHASH, msg.sender, index, to, deadline));
+        bytes32 structHash = keccak256(abi.encode(WITHDRAW_TYPEHASH, msg.sender, index, to, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
         require(from == _ecrecover(digest, sig), "INVALID_SIGNATURE");
         return _withdraw(from, index, to);
